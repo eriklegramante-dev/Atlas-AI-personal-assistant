@@ -1,5 +1,5 @@
 from langchain_core.tools import tool
-from src.speech.brain.memory_manager import AtlasBrain
+from src.brain.memory_manager import AtlasBrain
 
 brain = AtlasBrain()
 

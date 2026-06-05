@@ -14,11 +14,11 @@ from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 
 #modules imports
 from tools import get_all_atlas_tools
-from speech.speaker import AtlasSpeaker
+from src.speech.speaker import AtlasSpeaker
 from logs import setup_logger
 from ui.avatar import AtlasAvatar
 from ui.virtual_entity import VirtualEntity
-from speech.listener import AtlasListener
+from src.speech.listener import AtlasListener
 
 logging.getLogger("httpcore").setLevel(logging.ERROR)
 logging.getLogger("httpx").setLevel(logging.ERROR)

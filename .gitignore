@@ -1,14 +1,61 @@
-# Ambiente Virtual
-venv/
+# === Python ===
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
 
-# Dados Sensíveis
+# === Ambientes Virtuais ===
 .env
+.venv
+venv/
+ENV/
+env.bak/
+venv.bak/
 
-# Logs e Dados locais
+# === Banco de Dados Local (Preserva sua memória store original)
+*.db
+*.sqlite3
+
+# === Logs e Relatórios ===
 logs/
-memory_store.db
+*.log
+.pytest_cache/
+.coverage
+htmlcov/
+flake8/
 
-# atlas - Não irei subir o novo avatar, fiz com gifs e ficou pesado, caso tenha interesse em continuar com o meu projeto entre em contato que eu envio o pacote faltante
-ui/assets/
+# === Configurações de IDEs e editores ===
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+
+# === Sistema Operacional (Ubuntu/Linux) ===
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
