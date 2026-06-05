@@ -2,25 +2,25 @@
 python-dotenv>=1.0.1
 pydantic>=2.7.0
 
-# === Ecossistema de IA e Agentes (Moderno) ===
+# === Ecossistema de IA e Agentes ===
 langchain-core>=0.2.0
-langchain-ollama>=0.1.0       
+langchain-ollama>=0.1.0        
 langgraph>=0.0.30              
 
-# === Banco de Dados (Suporte Assíncrono) ===
+# === Banco de Dados ===
 aiosqlite>=0.20.0              
 
-# === Áudio, STT e TTS Locales (Otimizados) ===
-SpeechRecognition>=3.10.4
-pyaudio>=0.2.14
-gTTS>=2.5.1
-pygame>=2.5.2                  
+# === IA de Áudio, STT e TTS (Seu Arsenal) ===
+torch>=2.2.0          
+faster-whisper>=1.0.0          
+edge-tts>=6.1.1                
+sounddevice>=0.4.6             
+scipy>=1.12.0                  
 
-# === Web & API (Opcional/Futuro) ===
-fastapi>=0.111.0
-uvicorn[standard]>=0.29.0
+# === Ferramentas do Agente (Web Search) ===
+duckduckgo-search>=6.1.7       
 
-# === Testes e Qualidade de Código ===
+# === Testes e Qualidade ===
 pytest>=8.2.0
-pytest-asyncio>=0.23.0         
-black>=24.4.0                  
+pytest-asyncio>=0.23.0
+black>=24.4.0

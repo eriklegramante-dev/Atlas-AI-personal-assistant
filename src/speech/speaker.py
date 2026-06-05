@@ -22,3 +22,5 @@ class AtlasSpeaker:
         
         pygame.mixer.quit()
         os.remove(self.output_file)
+
+    
