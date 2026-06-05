@@ -1,5 +1,2 @@
-atlas - Não irei subir o novo avatar, fiz com gifs e ficou pesado, caso tenha interesse em continuar com o meu projeto entre em contato que eu envio o pacote faltante
-
-Obs: atualmente estou tendo problemas nas dimenções do avatar por ter feito em dimenções diferentes, que foi um erro drástico, aliás é possivel que eu perca \n
-o avatar e tenha que fazer novamente... O avatar tem varias reações, no entando, não sei como inseri-las de acordo com o que é dito... veremos amanhã \n
-o que será adicionado para melhora-la.
+Atualização, retomei ao projeto Atlas, porém, decidi refatorar boa parte do codigo, pode ser que fique quebrado por um tempo para que eu possa consertar 
+o projeto, os arquivos, inclusive o main, está muito bagunçado.

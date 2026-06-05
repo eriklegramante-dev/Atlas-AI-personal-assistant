@@ -1,5 +1,5 @@
 import pygame
-from PIL import Image, ImageSequence
+from PIL import Image, ImageSequence 
 import os
 import logging as logger
 
