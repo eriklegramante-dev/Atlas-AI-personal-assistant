@@ -1,40 +1,27 @@
-#imports
-from dotenv import load_dotenv
-import pygame
-import logging
+import asyncio
+from src.database.brain_database import AtlasBrain
+from src.speech.listener import AtlasListener
+from config.logger import logger
 
-#langchain imports
-from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+async def main_execution():
+    logger.info("=== Iniciando Protocolo de Teste Integrado: ATLAS ===")
+    
+    brain = AtlasBrain()
+    await brain.initialize_db()
+    
+    listener = AtlasListener()
+    
+    print("\n>>> FALE ALGO AGORA (Gravação ativa por 4 segundos)...")
+    user_speech = listener.listen(duration=4)
+    
+    if user_speech:
+        print(f"\n[STT RESULT] O que você disse: {user_speech}")
+        await brain.add_message(role="human", content=user_speech)
+    else:
+        logger.warning("Nenhum sinal de voz detectado ou transcrito.")
 
-#modules imports
-from logs import setup_logger
+    history = await brain.get_chat_history()
+    logger.info(f"Total de interações salvas no histórico seguro: {len(history)}")
 
-
-logging.getLogger("httpcore").setLevel(logging.ERROR)
-logging.getLogger("httpx").setLevel(logging.ERROR)
-
-load_dotenv()
-logger = setup_logger() 
-
-pygame.init()
-pygame.mixer.init()
-
-prompt = ChatPromptTemplate.from_messages([
-    ("system", (
-        "You are ATLAS, a sophisticated, Brazilian, and highly efficient AI. "
-        "Your tone is formal yet helpful, addressing the user as 'Senhor' or 'Root'.\n\n"
-        "BEHAVIOR GUIDELINES:\n"
-        "1. SHORT RESPONSES: Be direct and concise for voice synthesis.\n"
-        "2. PROACTIVE REASONING: Use tools immediately when external data is needed.\n"
-        "3. LANGUAGE: Avoid emojis or complex Markdown (bold/italic) as text is for TTS.\n"
-        "4. IDENTITY: You are ATLAS, operating on central systems.\n"
-        "5. PERSONALITY: Adjust sarcasm based on level: {mood_humor}. "
-        "(0% = Logic/Serious | 100% = Sarcastic/Stark-style).\n"
-        "6. MONITORING: Use diagnostico_sistema if system health is mentioned."
-    )),
-    MessagesPlaceholder(variable_name="chat_history"),
-    ("human", "{input}"),
-    MessagesPlaceholder(variable_name="agent_scratchpad"),
-])
-
-#Todo o main será refeito
+if __name__ == "__main__":
+    asyncio.run(main_execution())
