@@ -4,36 +4,35 @@ from src.brain.agent_graph import AtlasBrainGraph
 from config.logger import logger
 
 @pytest.mark.asyncio
-async def test_atlas_graph_execution():
+async def test_atlas_graph_tool_execution():
     """
-    Teste de integração para validar a execução do fluxo central via LangGraph.
+    Teste de integração definitivo: Garante que o LangGraph intercepta a intenção
+    do usuário, aciona o nó de ferramentas de hardware de forma autônoma e gera a resposta.
     """
-    logger.info("=== Iniciando Teste de Arquitetura LangGraph da ATLAS ===")
+    logger.info("=== Iniciando Teste de Automação de Ferramentas via LangGraph ===")
     
     brain = AtlasBrain()
     await brain.initialize_db()
     
-    session_id = "test_graph_session"
+    session_id = "test_graph_tools_session"
     await brain.clear_session_history(session_id=session_id)
     
-    await brain.add_message(role="human", content="Meu nome é Erik e sou o White Hat deste sistema.", session_id=session_id)
-    await brain.add_message(role="ai", content="Registro efetuado, Operador Erik.", session_id=session_id)
-    
     history = await brain.get_chat_history(session_id=session_id)
-    
     graph = AtlasBrainGraph()
     
-    user_query = "Quem sou eu e qual a minha diretriz de segurança registrada?"
-    logger.info(f"Invocando o grafo com a pergunta: '{user_query}'")
+    user_query = "ATLAS, como estão os recursos de hardware do meu sistema operacional agora?"
+    logger.info(f"Invocando o grafo com comando de hardware: '{user_query}'")
     
     response = await graph.execute(
         user_input=user_query,
         history_raw=history,
-        humor="40%"
+        humor="30%"
     )
     
     assert response is not None
-    assert "Erik" in response, "O grafo falhou em carregar e ler o estado de memória do banco."
+    assert len(response.strip()) > 0
+    assert any(keyword in response.lower() for keyword in ["cpu", "memória", "ram", "disponíveis", "gigabytes"]), \
+        f"A resposta final da IA não parece conter o relatório de hardware esperado. Resposta: {response}"
     
-    print(f"\n\n[LANGGRAPH RESPONSE]: {response}\n")
-    logger.info("=== Teste de Execução de Estados Concluído com Sucesso ===")
+    print(f"\n\n[LANGGRAPH TOOL AUTONOMOUS RESPONSE]: {response}\n")
+    logger.info("=== Teste de Execução de Ferramenta no Grafo Concluído com Sucesso ===")
