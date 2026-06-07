@@ -1,5 +1,6 @@
 from langchain_ollama import ChatOllama
 from langchain_google_genai import ChatGoogleGenerativeAI
+from src.tools import ATLAS_TOOLS  # Importa a lista de ferramentas que criamos
 from config.settings import settings
 from config.logger import logger
 
@@ -10,7 +11,7 @@ class AtlasModelManager:
             base_url=settings.OLLAMA_BASE_URL,
             model=settings.OLLAMA_MODEL,
             temperature=0.3
-        )
+        ).bind_tools(ATLAS_TOOLS)
         
         self.cloud_model = None
         if settings.GEMINI_API_KEY:
@@ -19,9 +20,9 @@ class AtlasModelManager:
                 model="gemini-3.5-flash",
                 google_api_key=settings.GEMINI_API_KEY,
                 temperature=0.3
-            )
+            ).bind_tools(ATLAS_TOOLS)
         else:
-            logger.warning("GEMINI_API_KEY não foi configurada no .env. Sistema operando sem fallback na nuvem.")
+            logger.warning("GEMINI_API_KEY não foi configurada. Operando sem fallback.")
 
     def get_model(self, prefer_cloud: bool = False):
         """
@@ -35,20 +36,44 @@ class AtlasModelManager:
             """
             Tenta processar a requisição no Ollama local. Se falhar ou bater no limite,
             faz o transbordo automático para o Gemini Flash.
-            Garante o tratamento do retorno para sempre devolver uma string limpa.
+            Trata e simplifica payloads complexos de ferramentas para evitar quebras nos modelos.
             """
+            processed_payload = prompt_messages
+            
+            if isinstance(prompt_messages, list) and len(prompt_messages) > 2:
+                logger.debug("Simplificando payload complexo de ferramentas para garantir compatibilidade local.")
+                from langchain_core.messages import SystemMessage, HumanMessage
+                
+                simplified_text = ""
+                system_msg = prompt_messages[0].content
+                
+                for msg in prompt_messages[1:]:
+                    if msg.type == "human":
+                        simplified_text += f"\nUsuário: {msg.content}"
+                    elif msg.type == "ai" and msg.content:
+                        simplified_text += f"\nATLAS: {msg.content}"
+                    elif msg.type == "tool":
+                        simplified_text += f"\n[RETORNO DO SISTEMA OPERACIONAL]: {msg.content}"
+                
+                simplified_text += "\n\nInstrução técnica: Formate e responda ao Usuário agora baseando-se no [RETORNO DO SISTEMA OPERACIONAL] acima."
+                
+                processed_payload = [
+                    SystemMessage(content=system_msg),
+                    HumanMessage(content=simplified_text)
+                ]
+
             try:
                 logger.debug("Direcionando requisição para o cérebro local (Ollama)...")
-                response = await self.local_model.ainvoke(prompt_messages)
+                response = await self.local_model.ainvoke(processed_payload)
                 return self._extract_content(response)
                 
             except Exception as local_error:
-                logger.warning(f"Ollama local indisponível ou limite atingido: {local_error}")
+                logger.warning(f"Ollama local indisponível ou rejeitou o payload: {local_error}")
                 
                 if self.cloud_model:
                     logger.info("Protocolo de transbordo ativado. Acionando Gemini-1.5-Flash na nuvem...")
                     try:
-                        response = await self.cloud_model.ainvoke(prompt_messages)
+                        response = await self.cloud_model.ainvoke(processed_payload)
                         return self._extract_content(response)
                     except Exception as cloud_error:
                         logger.critical(f"Falha crítica: Ambos os motores de IA falharam. Erro nuvem: {cloud_error}")
