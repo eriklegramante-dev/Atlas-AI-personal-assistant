@@ -1,6 +1,8 @@
+import datetime
 from langchain_ollama import ChatOllama
 from langchain_google_genai import ChatGoogleGenerativeAI
-from src.tools import ATLAS_TOOLS  # Importa a lista de ferramentas que criamos
+from langchain_core.messages import SystemMessage
+from src.tools import ATLAS_TOOLS
 from config.settings import settings
 from config.logger import logger
 
@@ -10,83 +12,63 @@ class AtlasModelManager:
         self.local_model = ChatOllama(
             base_url=settings.OLLAMA_BASE_URL,
             model=settings.OLLAMA_MODEL,
-            temperature=0.3
+            temperature=0.3,
+            timeout=10.0  
         ).bind_tools(ATLAS_TOOLS)
         
         self.cloud_model = None
         if settings.GEMINI_API_KEY:
             logger.debug("Chave Gemini detectada. Inicializando modelo de contingência na nuvem.")
             self.cloud_model = ChatGoogleGenerativeAI(
-                model="gemini-3.5-flash",
+                model="gemini-2.5-flash",
                 google_api_key=settings.GEMINI_API_KEY,
                 temperature=0.3
             ).bind_tools(ATLAS_TOOLS)
         else:
             logger.warning("GEMINI_API_KEY não foi configurada. Operando sem fallback.")
 
-    def get_model(self, prefer_cloud: bool = False):
+    async def invoke_with_fallback(self, payload: list) -> str:
         """
-        Retorna o modelo ativo. Pode forçar o uso da nuvem se necessário.
+        Tenta processar a requisição no Ollama local com timeout rígido.
+        Em caso de queda, indisponibilidade ou estouro, aciona o Gemini Flash.
         """
-        if prefer_cloud and self.cloud_model:
-            return self.cloud_model
-        return self.local_model
+        payload = self._inject_temporal_context(payload)
 
-    async def invoke_with_fallback(self, prompt_messages) -> str:
-            """
-            Tenta processar a requisição no Ollama local. Se falhar ou bater no limite,
-            faz o transbordo automático para o Gemini Flash.
-            Trata e simplifica payloads complexos de ferramentas para evitar quebras nos modelos.
-            """
-            processed_payload = prompt_messages
+        try:
+            logger.debug("Direcionando requisição para o cérebro local (Ollama)...")
+            response = await self.local_model.ainvoke(payload)
+            return self._extract_content(response)
             
-            if isinstance(prompt_messages, list) and len(prompt_messages) > 2:
-                logger.debug("Simplificando payload complexo de ferramentas para garantir compatibilidade local.")
-                from langchain_core.messages import SystemMessage, HumanMessage
-                
-                simplified_text = ""
-                system_msg = prompt_messages[0].content
-                
-                for msg in prompt_messages[1:]:
-                    if msg.type == "human":
-                        simplified_text += f"\nUsuário: {msg.content}"
-                    elif msg.type == "ai" and msg.content:
-                        simplified_text += f"\nATLAS: {msg.content}"
-                    elif msg.type == "tool":
-                        simplified_text += f"\n[RETORNO DO SISTEMA OPERACIONAL]: {msg.content}"
-                
-                simplified_text += "\n\nInstrução técnica: Formate e responda ao Usuário agora baseando-se no [RETORNO DO SISTEMA OPERACIONAL] acima."
-                
-                processed_payload = [
-                    SystemMessage(content=system_msg),
-                    HumanMessage(content=simplified_text)
-                ]
+        except Exception as local_error:
+            logger.warning(f"Ollama local indisponível ou rejeitou o payload: {local_error}")
+            
+            if self.cloud_model:
+                logger.info("Protocolo de transbordo ativado. Acionando Gemini-1.5-Flash na nuvem...")
+                try:
+                    response = await self.cloud_model.ainvoke(payload)
+                    return self._extract_content(response)
+                except Exception as cloud_error:
+                    logger.critical(f"Falha crítica: Ambos os motores de IA falharam. Erro nuvem: {cloud_error}")
+                    return "Senhor, houve uma falha catastrófica em ambos os meus módulos de processamento centrais."
+            else:
+                logger.error("Falha no modelo local e nenhum modelo de nuvem configurado para fallback.")
+                return "Senhor, meu módulo local está sobrecarregado e não possuo conexões de contingência acivas."
 
-            try:
-                logger.debug("Direcionando requisição para o cérebro local (Ollama)...")
-                response = await self.local_model.ainvoke(processed_payload)
-                return self._extract_content(response)
-                
-            except Exception as local_error:
-                logger.warning(f"Ollama local indisponível ou rejeitou o payload: {local_error}")
-                
-                if self.cloud_model:
-                    logger.info("Protocolo de transbordo ativado. Acionando Gemini-1.5-Flash na nuvem...")
-                    try:
-                        response = await self.cloud_model.ainvoke(processed_payload)
-                        return self._extract_content(response)
-                    except Exception as cloud_error:
-                        logger.critical(f"Falha crítica: Ambos os motores de IA falharam. Erro nuvem: {cloud_error}")
-                        return "Senhor, houve uma falha catastrófica em ambos os meus módulos de processamento centrais."
-                else:
-                    logger.error("Falha no modelo local e nenhum modelo de nuvem configurado para fallback.")
-                    return "Senhor, meu módulo local está sobrecarregado e não possuo conexões de contingência ativas."
-
+    def _inject_temporal_context(self, payload: list) -> list:
+        """Injeta a data e hora atual do sistema operacional no prompt principal."""
+        now = datetime.datetime.now()
+        dias_semana = ["segunda-feira", "terça-feira", "quarta-feira", "quinta-feira", "sexta-feira", "sábado", "domingo"]
+        data_formatada = f"{dias_semana[now.weekday()]}, {now.day} de {now.strftime('%B')} de {now.year}, às {now.strftime('%H:%M')}"
+        
+        for msg in payload:
+            if isinstance(msg, SystemMessage):
+                msg.content = f"DIRETRIZ TEMPORAL: Hoje é {data_formatada}.\n\n{msg.content}"
+                break
+        return payload
 
     def _extract_content(self, response) -> str:
         """Trata e extrai o conteúdo textual bruto de forma resiliente."""
         content = response.content
-        
         if isinstance(content, list):
             extracted = []
             for item in content:
@@ -97,5 +79,4 @@ class AtlasModelManager:
                 else:
                     extracted.append(str(item))
             return "".join(extracted).strip()
-            
         return str(content).strip()

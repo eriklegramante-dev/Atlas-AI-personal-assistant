@@ -38,7 +38,7 @@ class SystemSettings(BaseSettings):
     AUDIO_CHANNELS: int = 1               
     AUDIO_BLOCK_SIZE: int = 1024
     
-    EDGE_TTS_VOICE: str = "pt-BR-AntonioNeural" 
+    EDGE_TTS_VOICE: str = "pt-BR-FranciscaNeural"
     
     DATABASE_PATH: Path = BASE_DIR / "memory_store.db"
     

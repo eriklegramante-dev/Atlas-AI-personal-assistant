@@ -28,7 +28,7 @@ class AtlasSpeaker:
         logger.debug(f"Iniciando síntese de voz Edge-TTS para o texto: '{text[:30]}...'")
         
         try:
-            communicate = edge_tts.Communicate(text, self.voice)
+            communicate = edge_tts.Communicate(text, self.voice, rate="+5%")
             await communicate.save(str(self.temp_audio_path))
             
             logger.debug("Áudio sintetizado com sucesso. Iniciando reprodução...")

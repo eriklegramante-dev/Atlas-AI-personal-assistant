@@ -21,77 +21,70 @@ class AtlasBrainGraph:
         self._build_graph()
 
     async def _call_brain(self, state: AgentState) -> dict:
-            """Nó que prepara o prompt estruturado e invoca a inteligência de forma resiliente."""
-            logger.info("--- [DEBUG GRAPH] Iniciando nó _call_brain ---")
+            """Nó que prepara o prompt estruturado e invoca a inteligência local ou nuvem."""
+            logger.info("--- [DEBUG GRAPH] Nó _call_brain Iniciado ---")
             
             raw_history = state.get("chat_history_raw", [])
             user_input = state.get("input", "")
             humor = state.get("mood_humor", "30%")
             current_messages = state.get("messages", [])
             
-            logger.debug(f"[DEBUG GRAPH] Quantidade de mensagens acumuladas no estado atual: {len(current_messages)}")
-            if current_messages:
-                logger.debug(f"[DEBUG GRAPH] Tipo da última mensagem no estado: {type(current_messages[-1])}")
-                logger.debug(f"[DEBUG GRAPH] Conteúdo da última mensagem: {getattr(current_messages[-1], 'content', 'Sem conteúdo')}")
+            # 1. Reconstrói o bloco de System Prompt e a pergunta inicial de forma estática
+            formatted_history = ""
+            for msg in raw_history:
+                speaker = "Usuário (Root)" if msg["role"] == "human" else "ATLAS (Você)"
+                formatted_history += f"[{speaker}]: {msg['content']}\n"
+                
+            base_system = settings.SYSTEM_PROMPT.format(mood_humor=humor)
+            enriched_system_prompt = (
+                f"{base_system}\n\n"
+                f"CONTEXTO DE CONVERSA ANTERIOR (MEMÓRIA RECENTE):\n"
+                f"-------\n{formatted_history}-------\n"
+            )
+            
+            base_payload = [
+                SystemMessage(content=enriched_system_prompt),
+                HumanMessage(content=user_input)
+            ]
 
+            # 2. Montagem da linha do tempo para o modelo
             if not current_messages:
-                logger.debug("[DEBUG GRAPH] Ciclo inicial detectado. Construindo System Prompt estruturado.")
-                formatted_history = ""
-                for msg in raw_history:
-                    speaker = "Usuário (Root)" if msg["role"] == "human" else "ATLAS (Você)"
-                    formatted_history += f"[{speaker}]: {msg['content']}\n"
-                    
-                base_system = settings.SYSTEM_PROMPT.format(mood_humor=humor)
-                enriched_system_prompt = (
-                    f"{base_system}\n\n"
-                    f"CONTEXTO DE CONVERSA ANTERIOR (MEMÓRIA RECENTE):\n"
-                    f"-------\n{formatted_history}-------\n"
-                )
-                
-                payload = [
-                    SystemMessage(content=enriched_system_prompt),
-                    HumanMessage(content=user_input)
-                ]
+                payload = base_payload
             else:
-                logger.debug("[DEBUG GRAPH] Ciclo de retorno de ferramenta detectado. Utilizando histórico de mensagens acumulado.")
-                payload = current_messages
+                payload = base_payload + current_messages
 
-            logger.info(f"[DEBUG GRAPH] Enviando PAYLOAD contendo {len(payload)} mensagens para o Model Manager.")
-            for i, msg in enumerate(payload):
-                logger.debug(f" -> Mensagem [{i}] ({type(msg).__name__}): {str(msg.content)[:80]}...")
-                if hasattr(msg, "tool_calls") and msg.tool_calls:
-                    logger.debug(f"    └── Contém Tool Calls: {msg.tool_calls}")
-
+            # 3. Invoca o gerenciador de IA (Ollama com fallback ativo)
             try:
-                ai_response_text = await self.model_manager.invoke_with_fallback(payload)
-                logger.info(f"[DEBUG GRAPH] Resposta textual recebida do Model Manager: '{ai_response_text[:60]}...'")
+                # Para manter o suporte a Tool Calls nativo dentro do LangGraph, 
+                # nós precisamos invocar o modelo diretamente se ele possuir ferramentas acopladas.
+                # O invoke_with_fallback devolve apenas texto bruto, o que quebra o reconhecimento de ferramentas do grafo.
                 
-                if not current_messages and ("diagnostico_sistema" in user_input or "hardware" in user_input.lower()):
-                    logger.debug("[DEBUG GRAPH] Interceptador de hardware ativado. Forçando injeção de ToolCall para estabilidade.")
-                    from langchain_core.messages import AIMessage
-                    import uuid
-                    ai_message = AIMessage(
-                        content="",
-                        tool_calls=[{
-                            "name": "diagnostico_sistema",
-                            "args": {},
-                            "id": f"call_{uuid.uuid4().hex[:8]}"
-                        }]
-                    )
-                    logger.debug(f"[DEBUG GRAPH] Objeto AIMessage forçado gerado: {ai_message}")
-                    return {"messages": [ai_message], "response": ""}
+                logger.debug("Invocando motor de IA dentro do fluxo do Grafo...")
+                if self.model_manager.cloud_model:
+                    # Se houver chave, usamos o modelo com fallback nativo do LangChain se preferir,
+                    # ou chamamos o local_model diretamente para o grafo gerenciar as ferramentas
+                    ai_message = await self.model_manager.local_model.ainvoke(payload)
+                else:
+                    ai_message = await self.model_manager.local_model.ainvoke(payload)
                     
-                from langchain_core.messages import AIMessage
-                ai_message = AIMessage(content=str(ai_response_text))
+                logger.info(f"[DEBUG GRAPH] Resposta do modelo gerada com sucesso. Conteúdo vazio? {not ai_message.content}")
+                
                 return {
                     "messages": [ai_message],
-                    "response": ai_message.content
+                    "response": ai_message.content if not ai_message.tool_calls else ""
                 }
                 
             except Exception as e:
-                logger.error(f"[DEBUG GRAPH] Exceção capturada dentro do nó _call_brain: {e}", exc_info=True)
+                logger.warning(f"[DEBUG GRAPH] Instabilidade no modelo principal, tentando fallback: {e}")
+                try:
+                    if self.model_manager.cloud_model:
+                        ai_message = await self.model_manager.cloud_model.ainvoke(payload)
+                        return {"messages": [ai_message], "response": ai_message.content}
+                except Exception as cloud_err:
+                    logger.critical(f"[DEBUG GRAPH] Falha total nos motores de IA: {cloud_err}")
+                    
                 from langchain_core.messages import AIMessage
-                error_msg = AIMessage(content="Senhor, enfrentei uma instabilidade severa nos meus núcleos de processamento de estado.")
+                error_msg = AIMessage(content="Senhor, enfrentei uma oscilação nos meus módulos de processamento central.")
                 return {"messages": [error_msg], "response": error_msg.content}
 
     async def _execute_tools(self, state: AgentState) -> dict:
@@ -179,11 +172,25 @@ class AtlasBrainGraph:
         logger.info("Grafo de decisões com suporte a ferramentas compilado com sucesso.")
 
     async def execute(self, user_input: str, history_raw: List[dict], humor: str = "30%") -> str:
-        initial_state = {
-            "input": user_input,
-            "chat_history_raw": history_raw,
-            "mood_humor": humor,
-            "messages": []
-        }
-        final_state = await self.app.ainvoke(initial_state)
-        return final_state.get("response", "Senhor, meu fluxo de processamento de estados falhou.")
+            """Interface executável assíncrona para invocar o grafo por fora."""
+            initial_state = {
+                "input": user_input,
+                "chat_history_raw": history_raw,
+                "mood_humor": humor,
+                "messages": []
+            }
+            
+            # Executa o fluxo completo dos nós
+            final_state = await self.app.ainvoke(initial_state)
+            
+            # 1. Tenta pegar a string direta do campo response
+            response = final_state.get("response", "")
+            
+            # 2. Se o campo response veio vazio por conta do comportamento do nó, 
+            # extraímos o texto diretamente da ÚLTIMA mensagem gerada pelo grafo
+            if not response and final_state.get("messages"):
+                last_msg = final_state["messages"][-1]
+                response = getattr(last_msg, "content", "")
+                
+            logger.info(f"[DEBUG GRAPH] Resposta final extraída para o usuário: '{response[:50]}...'")
+            return str(response).strip()
