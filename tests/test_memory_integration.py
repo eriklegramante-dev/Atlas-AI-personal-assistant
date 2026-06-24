@@ -8,10 +8,10 @@ from config.logger import logger
 @pytest.mark.asyncio
 async def test_atlas_chat_history_integration():
     """
-    Teste de integração refinado para garantir que modelos locais (Ollama)
-    compreendam perfeitamente o histórico de mensagens injetado.
+    Refined integration test to ensure that local models (Ollama)
+    perfectly comprehend the injected short-term message history context.
     """
-    logger.info("=== Iniciando Teste de Integração de Memória Semântica Refinado ===")
+    logger.info("=== Starting Refined Semantic Memory Integration Test ===")
     
     brain = AtlasBrain()
     await brain.initialize_db()
@@ -20,37 +20,38 @@ async def test_atlas_chat_history_integration():
     session_id = "test_memory_session_2026"
     await brain.clear_session_history(session_id=session_id)
     
-    logger.debug("Alimentando o banco com o contexto passado...")
-    await brain.add_message(role="human", content="ATLAS, registre: meu codinome operacional neste terminal é Root-Alpha.", session_id=session_id)
-    await brain.add_message(role="ai", content="Entendido, Senhor. O codinome Root-Alpha foi armazenado localmente nos meus sistemas de segurança.", session_id=session_id)
+    logger.debug("Populating database layer with artificial memory context...")
+    await brain.add_message(role="human", content="ATLAS, take note: my operational codename on this terminal is Root-Alpha.", session_id=session_id)
+    await brain.add_message(role="ai", content="Understood, Sir. The codename Root-Alpha has been securely stored locally within my core systems.", session_id=session_id)
     
     raw_history = await brain.get_chat_history(session_id=session_id, limit=10)
     
     formatted_history = ""
     for msg in raw_history:
-        speaker = "Usuário (Root)" if msg["role"] == "human" else "ATLAS (Você)"
+        speaker = "User (Root)" if msg["role"] == "human" else "ATLAS (You)"
         formatted_history += f"[{speaker}]: {msg['content']}\n"
     
     base_system = settings.SYSTEM_PROMPT.format(mood_humor="30%")
     
     enriched_system_prompt = (
-        f"{base_system}\n\n"
-        f"CONTEXTO DE CONVERSA ANTERIOR (MEMÓRIA RECENTE):\n"
-        f"Use o histórico abaixo para lembrar de nomes, comandos ou fatos ditos antes:\n"
-        f"-------\n"
-        f"{formatted_history}"
-        f"-------\n"
-        f"Lembre-se: Responda diretamente à nova pergunta abaixo usando os dados acima se necessário."
-    )
+            f"{base_system}\n\n"
+            f"CONTEXT OF PREVIOUS CONVERSATION (RECENT MEMORY):\n"
+            f"Use the historical timeline below to recall names, commands, or prior facts:\n"
+            f"-------\n"
+            f"{formatted_history}"
+            f"-------\n"
+            f"CRITICAL DIRECTIVE: Do not invoke any system tools or diagnostics for this query. "
+            f"Answer the new user query directly below using only the historical data provided."
+        )
     
-    new_input = "Qual é o meu codinome operacional mesmo? Confirme para mim."
+    new_input = "What is my operational codename again? Confirm it for me."
     
     langchain_messages = [
         SystemMessage(content=enriched_system_prompt),
         HumanMessage(content=new_input)
     ]
     
-    logger.info("Despachando payload com histórico estruturado para a IA...")
+    logger.info("Dispatching payload containing structured memory timeline to AI engine...")
     
     response = await manager.invoke_with_fallback(langchain_messages)
     
@@ -59,6 +60,6 @@ async def test_atlas_chat_history_integration():
     print(f"\n\n[ATLAS INTEGRATED RESPONSE]: {response}\n")
     
     assert response is not None
-    assert "Root-Alpha" in response, "A ATLAS ainda falhou em recuperar o codinome do histórico estruturado."
+    assert "Root-Alpha" in response, "ATLAS failed to extract and recall the operational codename from the structured history."
     
-    logger.info("=== Teste de Integração de Memória Concluído com Sucesso ===")
+    logger.info("=== Semantic Memory Context Integration Test Completed Successfully ===")

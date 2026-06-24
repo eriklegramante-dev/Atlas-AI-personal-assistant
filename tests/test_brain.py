@@ -7,10 +7,10 @@ from config.logger import logger
 @pytest.mark.asyncio
 async def test_atlas_brain_routing():
     """
-    Teste de integração para validar o roteamento dinâmico da ATLAS.
-    Garante que o Ollama responda ou que o Gemini assuma em caso de falha.
+    Integration test to validate the dynamic routing mechanics of ATLAS.
+    Ensures that local Ollama handles the context or Gemini seamlessly falls back.
     """
-    logger.info("=== Iniciando Teste de Integração do Cérebro (IA) ===")
+    logger.info("=== Starting Brain Engine Integration Test (AI Architecture) ===")
     
     manager = AtlasModelManager()
     
@@ -18,15 +18,15 @@ async def test_atlas_brain_routing():
     
     messages = [
         SystemMessage(content=system_instruction),
-        HumanMessage(content="ATLAS, execute um ping interno e confirme seu modelo operacional atual.")
+        HumanMessage(content="ATLAS, execute an internal ping and confirm your current active operational model.")
     ]
     
-    logger.info("Enviando comando de teste para o Model Manager...")
+    logger.info("Dispatching test payload to Model Manager interface...")
     
     response = await manager.invoke_with_fallback(messages)
     
-    assert response is not None, "A resposta da IA não pode ser nula."
-    assert len(response.strip()) > 0, "A IA retornou uma string vazia."
+    assert response is not None, "The AI core response layer cannot evaluate to Null."
+    assert len(response.strip()) > 0, "The AI model returned an unexpected empty string context."
     
     print(f"\n\n[ATLAS RESPONSE]: {response}\n")
-    logger.info("=== Teste de Roteamento de IA Concluído com Sucesso ===")
+    logger.info("=== AI Core Model Routing Integration Test Completed Successfully ===")

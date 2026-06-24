@@ -9,8 +9,8 @@ class AtlasBrain:
         self.db_path = db_path
 
     async def initialize_db(self):
-        """Inicializa as tabelas do banco de dados de forma assíncrona."""
-        logger.debug(f"Conectando ao banco de dados seguro em: {self.db_path}")
+        """Asynchronously initializes database schema and core tables."""
+        logger.debug(f"Connecting to secure database engine at: {self.db_path}")
         try:
             async with aiosqlite.connect(self.db_path) as conn:
                 await conn.execute('''
@@ -29,14 +29,14 @@ class AtlasBrain:
                     )
                 ''')
                 await conn.commit()
-            logger.info("Banco de dados da ATLAS inicializado e protegido contra Git.")
+            logger.info("ATLAS central database initialized and Git-protected.")
         except Exception as e:
-            logger.error(f"Falha crítica ao inicializar o banco de dados: {e}", exc_info=True)
+            logger.critical(f"Critical failure while initializing database schema: {e}", exc_info=True)
             raise e
 
     async def add_message(self, role: str, content: str, session_id: str = "default"):
-        """Adiciona uma mensagem ao histórico da sessão atual (human ou ai)."""
-        logger.debug(f"Registrando mensagem no histórico [{session_id}]: {role}")
+        """Commits a single message transaction (human or ai) to the active session timeline."""
+        logger.debug(f"Logging record into chat history [{session_id}]: {role}")
         try:
             async with aiosqlite.connect(self.db_path) as conn:
                 await conn.execute(
@@ -45,12 +45,12 @@ class AtlasBrain:
                 )
                 await conn.commit()
         except Exception as e:
-            logger.error(f"Falha ao registrar mensagem no banco: {e}")
+            logger.error(f"Failed to commit message record to database: {e}")
 
     async def get_chat_history(self, session_id: str = "default", limit: int = 20) -> list[dict]:
         """
-        Recupera as últimas mensagens da sessão para alimentar o prompt.
-        Retorna uma lista de dicionários estruturados por data.
+        Retrieves recent message context slices to feed the short-term memory prompt.
+        Returns a sorted chronological list of structured dictionary payloads.
         """
         try:
             async with aiosqlite.connect(self.db_path) as conn:
@@ -65,34 +65,37 @@ class AtlasBrain:
                     rows = await cursor.fetchall()
                     return [{"role": row[0], "content": row[1]} for row in rows]
         except Exception as e:
-            logger.error(f"Erro ao recuperar histórico da sessão {session_id}: {e}")
+            logger.error(f"Failed to extract conversation memory context for session {session_id}: {e}")
             return []
 
     async def clear_session_history(self, session_id: str = "default"):
-        """Limpa a memória de curto prazo de uma sessão específica."""
-        logger.warning(f"Protocolo de limpeza de memória ativado para a sessão: {session_id}")
+        """Purges the volatile short-term conversation thread memory for an isolated session."""
+        logger.warning(f"Memory purge protocol activated for runtime session: {session_id}")
         try:
             async with aiosqlite.connect(self.db_path) as conn:
                 await conn.execute("DELETE FROM chat_history WHERE session_id = ?", (session_id,))
                 await conn.commit()
-            logger.info(f"Histórico da sessão {session_id} foi completamente limpo.")
+            logger.info(f"Short-term context for session '{session_id}' completely cleared.")
         except Exception as e:
-            logger.error(f"Erro ao limpar histórico da sessão {session_id}: {e}")
+            logger.error(f"Error executing memory purge routine for session {session_id}: {e}")
 
     async def store_fact(self, key: str, value: str):
+        """Saves long-term memory points or key-value profiling metadata regarding the operator."""
+        logger.debug(f"Storing profiling fact under key '{key}' into long-term vault.")
         try:
             async with aiosqlite.connect(self.db_path) as conn:
                 await conn.execute("INSERT OR REPLACE INTO user_profile (key, value) VALUES (?, ?)", (key, value))
                 await conn.commit()
         except Exception as e:
-            logger.error(f"Erro ao salvar fato '{key}' no banco: {e}")
+            logger.error(f"Failed to store analytical fact '{key}' in persistence layer: {e}")
 
     async def get_fact(self, key: str) -> str | None:
+        """Extracts a specific long-term tracking fact matching the unique identifier."""
         try:
             async with aiosqlite.connect(self.db_path) as conn:
                 async with conn.execute("SELECT value FROM user_profile WHERE key = ?", (key,)) as cursor:
                     result = await cursor.fetchone()
                     return result[0] if result else None
         except Exception as e:
-            logger.error(f"Erro ao recuperar fato '{key}': {e}")
+            logger.error(f"Error accessing user profile metadata vault for key '{key}': {e}")
             return None

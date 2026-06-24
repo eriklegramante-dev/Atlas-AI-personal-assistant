@@ -9,7 +9,7 @@ LOGS_DIR.mkdir(exist_ok=True)
 LOG_FILE_PATH = LOGS_DIR / "atlas.log"
 
 class CustomFormatter(logging.Formatter):
-    """Formatador personalizado para trazer cores e clareza no terminal do Ubuntu."""
+    """A custom formatter to bring color and clarity to the Ubuntu terminal."""
     
     grey = "\x1b[38;20m"
     cyan = "\x1b[36;20m"
@@ -35,7 +35,7 @@ class CustomFormatter(logging.Formatter):
 
 
 def setup_logger() -> logging.Logger:
-    """Configura o sistema central de logs da ATLAS."""
+    """Configures the ATLAS central logging system."""
     
     numeric_level = getattr(logging, settings.LOG_LEVEL.upper(), logging.INFO)
     

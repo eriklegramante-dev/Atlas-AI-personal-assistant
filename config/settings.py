@@ -6,8 +6,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 class SystemSettings(BaseSettings):
     """
-    Gerenciador central de configurações e parâmetros padrões da ATLAS.
-    O Pydantic valida os tipos automaticamente em tempo de execução.
+    Central manager of ATLAS default settings and parameters.
+    Pydantic validates types automatically at runtime.
     """
 
     ENVIRONMENT: Literal["development", "production", "testing"] = "development"
@@ -38,7 +38,7 @@ class SystemSettings(BaseSettings):
     AUDIO_CHANNELS: int = 1               
     AUDIO_BLOCK_SIZE: int = 1024
     
-    EDGE_TTS_VOICE: str = "pt-BR-AntonioNeural" 
+    EDGE_TTS_VOICE: str = "en-AU-NatashaNeural"
     
     DATABASE_PATH: Path = BASE_DIR / "memory_store.db"
     

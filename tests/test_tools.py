@@ -1,20 +1,20 @@
 import pytest
-from src.tools.system_tools import diagnostico_sistema
+from src.tools.system_tools import system_diagnostics
 from config.logger import logger
 
 @pytest.mark.asyncio
 async def test_system_telemetry_tool():
     """
-    Valida se a ferramenta de diagnóstico consegue ler os dados do Ubuntu
-    e retornar a string formatada corretamente.
+    Validates if the diagnostics tool can correctly read Ubuntu resource data
+    and return the properly formatted string telemetry.
     """
-    logger.info("=== Iniciando Teste de Ferramenta de Sistema ===")
+    logger.info("=== Starting System Telemetry Tool Integration Test ===")
     
-    resultado = await diagnostico_sistema.ainvoke(input={})
+    result = await system_diagnostics.ainvoke(input={})
     
-    assert resultado is not None
-    assert "Diagnóstico" in resultado
-    assert "%" in resultado
+    assert result is not None
+    assert "Hardware" in result
+    assert "percent" in result
     
-    print(f"\n\n[TOOL OUTPUT]: {resultado}\n")
-    logger.info("=== Teste de Ferramenta Concluído com Sucesso ===")
+    print(f"\n\n[TOOL OUTPUT]: {result}\n")
+    logger.info("=== System Telemetry Tool Test Completed Successfully ===")
