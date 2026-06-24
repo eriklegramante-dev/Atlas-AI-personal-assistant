@@ -7,7 +7,7 @@ from config.logger import logger
 class AtlasListener:
     def __init__(self):
         self.model_size = "small" 
-        logger.info(f"Carregando modelo de transcrição fonética Faster-Whisper ({self.model_size})...")
+        logger.info(f"Loading phonetic transcription template Faster-Whisper ({self.model_size})...")
         
         self.model = WhisperModel(self.model_size, device="cpu", compute_type="int8")
         self.sample_rate = 16000 
@@ -15,9 +15,9 @@ class AtlasListener:
         self.phonetic_prompt = "ATLAS, Root, Root-Alpha, Linux, Ubuntu, Python, White Hat, hardware, CPU, RAM."
 
     def listen(self, duration: int = 4) -> str:
-        """Captura o áudio do hardware e transcreve aplicando filtros fonéticos."""
+        """It captures audio from the hardware and transcribes it by applying phonetic filters."""
         try:
-            logger.debug(f"Microfone ativado. Capturando stream por {duration} segundos...")
+            logger.debug(f"Microphone activated. Capturing stream by {duration} seconds...")
             
             audio_data = sd.rec(
                 int(duration * self.sample_rate), 
@@ -43,5 +43,5 @@ class AtlasListener:
             return transcription
 
         except Exception as e:
-            logger.error(f"Falha na captura ou transcrição do áudio: {e}", exc_info=True)
+            logger.error(f"Audio capture or transcription failure: {e}", exc_info=True)
             return ""

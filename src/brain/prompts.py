@@ -4,10 +4,10 @@ from config.logger import logger
 
 def get_atlas_prompt() -> ChatPromptTemplate:
     """
-    Gera o template de prompt central da ATLAS utilizando as configurações globais.
-    Preparado para a arquitetura assíncrona do LangGraph.
+    Generates the ATLAS central prompt template using global settings.
+    Prepared for the LangGraph asynchronous architecture.
     """
-    logger.debug("Construindo ChatPromptTemplate para o agente central.")
+    logger.debug("Building a ChatPromptTemplate for the central agent.")
     
     return ChatPromptTemplate.from_messages([
         ("system", settings.SYSTEM_PROMPT),

@@ -1,7 +1,7 @@
 from langchain_core.tools import tool
 
 class WebManager:
-    """Gerenciador de ferramentas de internet."""
+    """Internet tool manager."""
     
     def fetch_tools(self):
         @tool
