@@ -1,43 +1,43 @@
 # ⚡ ATLAS — Personal Cyber Assistant (v4.0)
 
-ATLAS é um assistente de voz pessoal e autônomo projetado para rodar localmente no ecossistema Linux (Ubuntu/Debian), integrando processamento de linguagem natural por grafos, persistência de memória segura e redundância de motores de IA.
+ATLAS is an autonomous, local personal voice assistant engineered for the Linux ecosystem (Ubuntu/Debian). It integrates graph-based natural language processing, secure memory persistence, and multi-model AI redundancy.
 
 ---
 
-## 🎯 Visão Geral
+## 🎯 Overview
 
-O projeto foi construído com foco em:
+Key engineering priorities include:
 
-- Execução local e privacidade dos dados
-- Arquitetura assíncrona de ponta a ponta
-- Persistência de memória segura
-- Roteamento inteligente entre múltiplos modelos de IA
-- Processamento de voz em tempo real
-- Facilidade de manutenção e escalabilidade
-- Conformidade com os princípios do 12-Factor App
+- Local execution and data privacy
+- End-to-end asynchronous architecture
+- Secure, structured state persistence
+- Intelligent model routing and failover
+- Low-latency, real-time voice processing
+- Maintainability and modular scalability
+- Adherence to 12-Factor App methodology
 
 ---
 
-## 🛠️ Arquitetura e Engenharia do Sistema
+## 🛠️ System Architecture & Engineering
 
-O ATLAS foi totalmente refatorado seguindo os padrões do **12-Factor App**, garantindo isolamento entre código e configuração, portabilidade e facilidade de implantação.
+ATLAS is architected around **12-Factor App** principles, enforcing strict separation of config and code, environment parity, and seamless portability.
 
 ```text
-[Usuário] ──(Microfone/sounddevice)──> [src/speech/listener.py] (faster-whisper)
+[User] ──(Microphone / sounddevice)──> [src/speech/listener.py] (faster-whisper)
                                                      │
-                                                     │ (Texto Puro)
+                                                     │ (Raw Text)
                                                      ▼
-[Saída de Voz] <──(edge-tts)── [src/brain/agent_graph.py] (LangGraph)
+[Voice Output] <──(edge-tts)── [src/brain/agent_graph.py] (LangGraph)
                                                      │
                          ┌───────────────────────────┴───────────────────────────┐
                          ▼                                                       ▼
       [src/database/brain_database.py]                      [src/brain/model_manager.py]
-         (aiosqlite - Memória Local)                          (Ollama / Gemini Flash)
+        (aiosqlite - Local Storage)                           (Ollama / Gemini Flash)
 ```
 
 ---
 
-## 🗂️ Estrutura do Projeto
+## 🗂️ Project Structure
 
 ```text
 atlas/
@@ -70,172 +70,154 @@ atlas/
 
 ---
 
-## 📦 Componentes
+## 📦 Core Components
 
-### Configurações (`config/`)
+### Configuration (`config/`)
 
 #### `settings.py`
-Responsável pelo gerenciamento centralizado das configurações utilizando Pydantic Settings.
+Centralized application settings powered by Pydantic Settings.
 
-Principais benefícios:
-
-- Validação automática de tipos
-- Carregamento seguro via `.env`
-- Configuração desacoplada do código
-- Facilidade de manutenção
+Key features:
+- Automatic type casting and validation
+- Strict `.env` parsing
+- Decoupled configuration logic
+- High maintainability and testability
 
 #### `logger.py`
-Sistema central de logs com:
-
-- Rotação automática de arquivos
-- Limite de 5 MB por arquivo
-- Saída colorida no terminal
-- Rastreabilidade de erros e eventos
+Centralized logging pipeline providing:
+- Size-based automatic file rotation (5 MB ceiling)
+- Colored terminal output
+- Structured event and error traceability
 
 ---
 
-### Banco de Dados (`src/database/`)
+### Storage Layer (`src/database/`)
 
 #### `brain_database.py`
+Persistence interface governing ATLAS conversation state.
 
-Camada responsável pela memória do ATLAS.
-
-Funcionalidades:
-
-- Persistência assíncrona via `aiosqlite`
-- Histórico de conversas
-- Memória de curto prazo
-- Base para memória de longo prazo
-- Operações não bloqueantes
+Features:
+- Fully asynchronous I/O via `aiosqlite`
+- Historical dialogue tracking
+- Ephemeral short-term memory
+- Extensible schema for long-term state persistence
+- Non-blocking database operations
 
 ---
 
-### Cérebro (`src/brain/`)
+### Cognitive Engine (`src/brain/`)
 
 #### `agent_graph.py`
+Core cognitive loop powered by LangGraph.
 
-Implementa o núcleo cognitivo utilizando LangGraph.
-
-Responsabilidades:
-
-- Gerenciamento de estados
-- Fluxo de raciocínio
-- Encadeamento de decisões
-- Integração com memória e modelos
+Responsibilities:
+- State management across execution cycles
+- Reasoning flows and decision routing
+- Memory and model layer orchestration
 
 #### `model_manager.py`
+Model orchestration and failover management.
 
-Gerencia múltiplos provedores de IA.
-
-Estratégia atual:
-
+Routing workflow:
 ```text
-Ollama (Primário)
+Ollama (Primary / Local)
         │
         ▼
-Gemini Flash (Fallback)
+Gemini Flash (Fallback / Cloud)
 ```
 
-Benefícios:
-
-- Alta disponibilidade
-- Redundância operacional
-- Continuidade do serviço
+Advantages:
+- High availability
+- Operational redundancy
+- Zero service interruption on local model degradation
 
 ---
 
-### Voz (`src/speech/`)
+### Audio Pipeline (`src/speech/`)
 
 #### `listener.py`
+Audio ingestion and Speech-to-Text (STT) pipeline.
 
-Responsável pela entrada de voz.
+Stack:
+- `sounddevice`
+- `faster-whisper`
 
-Tecnologias:
-
-- sounddevice
-- faster-whisper
-
-Características:
-
-- Captura em float32
-- Baixa latência
-- Conversão local de fala para texto
+Features:
+- `float32` sample capture
+- Low-latency inference
+- Fully local transcription processing
 
 #### `speaker.py`
+Text-to-Speech (TTS) output pipeline.
 
-Responsável pela saída de voz.
+Stack:
+- `edge-tts`
+- `pygame.mixer`
 
-Tecnologias:
-
-- edge-tts
-- pygame mixer
-
-Características:
-
-- Síntese natural
-- Reprodução não bloqueante
-- Resposta rápida ao usuário
+Features:
+- High-fidelity voice synthesis
+- Asynchronous, non-blocking playback
+- Responsive user interaction cycles
 
 ---
 
-### Ferramentas (`src/tools/`)
+### Tooling & Automation (`src/tools/`)
 
-Módulo reservado para integrações futuras.
+Reserved interface for OS-level tool calls and system automation.
 
-Objetivos:
+Planned capabilities:
+- Local workflow automation
+- Linux/Ubuntu system monitoring
+- Controlled script execution
+- Native LangGraph tool bindings
 
-- Automação local
-- Monitoramento do Ubuntu
-- Execução de scripts
-- Integração ao LangGraph
-
-Status: Em desenvolvimento.
-
----
-
-## 📡 Status dos Módulos
-
-| Camada | Tecnologia | Status | Observação |
-|----------|------------|---------|------------|
-| Configurações | Pydantic Settings + .env | 🟢 Operacional | Tipagem validada |
-| Logging | RotatingFileHandler | 🟢 Operacional | Logs persistentes |
-| Banco de Dados | aiosqlite | 🟢 Operacional | Assíncrono |
-| Entrada de Áudio | faster-whisper | 🟢 Operacional | Captura estável |
-| Roteamento IA | Ollama → Gemini Flash | 🟢 Operacional | Fallback ativo |
-| Grafo Cognitivo | LangGraph | 🟢 Operacional | Estados funcionais |
-| Saída de Áudio | edge-tts + pygame | 🟢 Operacional | Não bloqueante |
-| Tools | Automação local | 🔴 Pendente | Próxima fase |
+Status: In active development.
 
 ---
 
-## 🚀 Instalação
+## 📡 Module Implementation Status
 
-### 1. Clonar o projeto
+| Subsystem | Technology Stack | Status | Notes |
+|---|---|---|---|
+| Configuration | Pydantic Settings + `.env` | 🟢 Operational | Strictly typed |
+| Logging | `RotatingFileHandler` | 🟢 Operational | Persistent disk logs |
+| Database | `aiosqlite` | 🟢 Operational | Fully asynchronous |
+| Audio Input | `faster-whisper` | 🟢 Operational | Stable capture & inference |
+| AI Routing | Ollama → Gemini Flash | 🟢 Operational | Automated failover active |
+| Cognitive Graph | LangGraph | 🟢 Operational | State machine functional |
+| Audio Output | `edge-tts` + `pygame` | 🟢 Operational | Non-blocking streaming |
+| Tool Integration | Local OS Automation | 🔴 Planned | Queued for next release |
+
+---
+
+## 🚀 Installation & Setup
+
+### 1. Clone the repository
 
 ```bash
-git clone https://github.com/seu-usuario/atlas.git
+git clone [https://github.com/your-username/atlas.git](https://github.com/your-username/atlas.git)
 cd atlas
 ```
 
-### 2. Criar ambiente virtual
+### 2. Configure the virtual environment
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
 ```
 
-### 3. Instalar dependências
+### 3. Install dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 4. Configurar variáveis de ambiente
+### 4. Configure environment variables
 
-Crie um arquivo `.env`:
+Create a `.env` file in the project root:
 
 ```env
-GOOGLE_API_KEY=xxxxxxxx
+GOOGLE_API_KEY=your_api_key_here
 OLLAMA_MODEL=llama3
 DATABASE_PATH=data/atlas.db
 LOG_LEVEL=INFO
@@ -243,7 +225,9 @@ LOG_LEVEL=INFO
 
 ---
 
-## ▶️ Execução
+## ▶️ Usage
+
+Start the assistant:
 
 ```bash
 python main.py
@@ -251,21 +235,23 @@ python main.py
 
 ---
 
-## 🧪 Suíte de Diagnósticos
+## 🧪 Test Suite & Diagnostics
 
-### Teste de memória
+Run integration and component tests via `pytest`:
+
+### Memory integration test
 
 ```bash
 pytest tests/test_memory_integration.py -s -v
 ```
 
-### Teste do grafo cognitivo
+### Cognitive graph execution test
 
 ```bash
 pytest tests/test_graph.py -s -v
 ```
 
-### Teste de síntese de voz
+### Speech synthesis test
 
 ```bash
 pytest tests/test_speech.py -s -v
@@ -273,54 +259,52 @@ pytest tests/test_speech.py -s -v
 
 ---
 
-## 🔒 Segurança
+## 🔒 Security Practices
 
-Práticas adotadas:
-
-- Segregação entre código e segredos
-- Arquivo `.env` protegido por `.gitignore`
-- Execução local sempre que possível
-- Logs controlados
-- Persistência isolada
+- Strict separation of credentials and application code
+- Environment variables ignored via `.gitignore`
+- Local-first architecture to minimize external data transmission
+- Guarded logging outputs to prevent credential leaks
+- Sandboxed local database storage
 
 ---
 
 ## 📈 Roadmap
 
-### Fase Atual (v4)
+### Current Release (v4.0)
 
-- [x] Arquitetura 12-Factor
-- [x] Banco assíncrono
-- [x] LangGraph
-- [x] STT local
-- [x] TTS assíncrono
-- [x] Fallback de modelos
+- [x] 12-Factor App architectural refactor
+- [x] Asynchronous database pipeline
+- [x] LangGraph state machine implementation
+- [x] On-device STT with `faster-whisper`
+- [x] Non-blocking TTS playback
+- [x] Autonomous model failover strategy
 
-### Próxima Fase (v5)
+### Upcoming Features (v5.0)
 
-- [ ] Ferramentas de automação Linux
-- [ ] Agendamento de tarefas
-- [ ] Memória vetorial
-- [ ] Sistema de plugins
-- [ ] Monitoramento do sistema operacional
-- [ ] Painel web administrativo
-
----
-
-## 🏛️ Filosofia do Projeto
-
-ATLAS foi desenvolvido com foco em autonomia, privacidade, escalabilidade e aprendizado contínuo.
-
-O objetivo é construir um assistente pessoal capaz de operar localmente, compreender contexto ao longo do tempo e integrar múltiplas ferramentas sem dependência obrigatória de serviços externos.
+- [ ] Linux system automation tools
+- [ ] Autonomous task scheduler
+- [ ] Vector database integration (RAG / Semantic Memory)
+- [ ] Modular plugin engine
+- [ ] OS performance monitoring hooks
+- [ ] Local web administration dashboard
 
 ---
 
-## 📄 Licença
+## 🏛️ Design Philosophy
 
-Este projeto pode ser distribuído sob a licença MIT ou outra licença definida pelo mantenedor.
+ATLAS is engineered with four core pillars: autonomy, privacy, scalability, and deterministic control.
+
+The goal is to build a personal assistant capable of long-term contextual understanding and system orchestration on local hardware, without hard dependencies on proprietary external infrastructure.
 
 ---
 
-## 👨‍💻 Autor
+## 📄 License
 
-Desenvolvido em ambiente estritamente ético (White Hat) e otimizado para aplicações modernas de Inteligência Artificial, automação local e assistentes cognitivos.
+Distributed under the MIT License. See `LICENSE` for more information.
+
+---
+
+## 👨‍💻 Author
+
+Built by [Erik Legramante](https://github.com/your-username).
