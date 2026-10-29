@@ -195,7 +195,7 @@ Status: In active development.
 ### 1. Clone the repository
 
 ```bash
-git clone [https://github.com/your-username/atlas.git](https://github.com/your-username/atlas.git)
+git clone [https://github.com/eriklegramante-dev/atlas.git](https://github.com/eriklegramante-dev/atlas.git)
 cd atlas
 ```
 
@@ -307,4 +307,4 @@ Distributed under the MIT License. See `LICENSE` for more information.
 
 ## 👨‍💻 Author
 
-Built by [Erik Legramante](https://github.com/your-username).
+Built by [Erik Legramante](https://github.com/eriklegramante-dev). 
